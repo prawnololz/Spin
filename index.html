@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#050505">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Daily Spin">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Daily Spin</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Mono:wght@300;400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#050505;color:#e8e4df;overflow-x:hidden;font-family:'Source Serif 4',Georgia,serif}
+button:focus,a:focus{outline:none}
+select:focus{outline:none}
+::-webkit-scrollbar{display:none}
+@keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.fade-up{animation:fadeUp .7s cubic-bezier(.16,1,.3,1) both}
+.spotify-btn{transition:all .2s;display:inline-flex;align-items:center;gap:8px;background:#1DB954;color:#000;text-decoration:none;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;letter-spacing:.06em;padding:12px 24px;border-radius:50px;text-transform:uppercase;border:none;cursor:pointer}
+.spotify-btn:active{transform:scale(.96)}
+.listened-btn{transition:all .25s;display:inline-flex;align-items:center;gap:8px;background:transparent;color:#555;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;letter-spacing:.06em;padding:12px 24px;border-radius:50px;text-transform:uppercase;border:1px solid #1f1f1f;cursor:pointer}
+.listened-btn:active{transform:scale(.96)}
+.listened-btn.done{background:#f6a21e12;border-color:#f6a21e33;color:#f6a21e}
+img{-webkit-user-drag:none}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script>
+const CLASSICS=[
+{a:"Pink Floyd",t:"The Dark Side of the Moon",y:1973,g:"Progressive Rock",d:"937 weeks on the Billboard 200. Tape loops, synthesizers, meditations on time, money, and madness — a seamless journey that defined albums.",tr:["Speak to Me","Breathe","On the Run","Time","The Great Gig in the Sky","Money","Us and Them","Any Colour You Like","Brain Damage","Eclipse"],s:[3,4,5,6]},
+{a:"Radiohead",t:"OK Computer",y:1997,g:"Alternative Rock",d:"Predicted our tech anxiety before smartphones. Prog ambition meets alt-rock grit — grows more relevant every year.",tr:["Airbag","Paranoid Android","Subterranean Homesick Alien","Exit Music (For a Film)","Let Down","Karma Police","Fitter Happier","Electioneering","Climbing Up the Walls","No Surprises","Lucky","The Tourist"],s:[1,3,4,5]},
+{a:"Miles Davis",t:"Kind of Blue",y:1959,g:"Jazz",d:"Best-selling jazz album ever. Modal scales, a legendary sextet breathing — music that still sounds fresh after 65 years.",tr:["So What","Freddie Freeloader","Blue in Green","All Blues","Flamenco Sketches"],s:[0,2,3]},
+{a:"Kendrick Lamar",t:"To Pimp a Butterfly",y:2015,g:"Hip Hop",d:"Jazz-infused odyssey through Black American identity. Funk, spoken word, raw lyricism — a Pulitzer-worthy masterwork.",tr:["Wesley's Theory","For Free?","King Kunta","Institutionalized","These Walls","u","Alright","For Sale?","Momma","Hood Politics","How Much a Dollar Cost","Complexion","The Blacker the Berry","You Ain't Gotta Lie","i","Mortal Man"],s:[2,6,10,12]},
+{a:"Fleetwood Mac",t:"Rumours",y:1977,g:"Rock",d:"Every couple breaking up, wreckage fueling perfect pop-rock. 40 million copies — great art from great pain.",tr:["Second Hand News","Dreams","Never Going Back Again","Don't Stop","Go Your Own Way","Songbird","The Chain","You Make Loving Fun","I Don't Want to Know","Oh Daddy","Gold Dust Woman"],s:[1,4,6,10]},
+{a:"Lauryn Hill",t:"The Miseducation of Lauryn Hill",y:1998,g:"R&B / Hip Hop",d:"Hip hop, soul, and reggae fused with equal virtuosity. Five Grammys — the blueprint for conscious R&B.",tr:["Lost Ones","Ex-Factor","To Zion","Doo Wop (That Thing)","Superstar","Final Hour","When It Hurts So Bad","I Used to Love Him","Forgive Them Father","Every Ghetto Every City","Nothing Even Matters","Everything Is Everything"],s:[1,3,6,11]},
+{a:"Nirvana",t:"Nevermind",y:1991,g:"Grunge",d:"Killed hair metal. Tortured melodies and punk fury knocked Michael Jackson off the charts and birthed an era.",tr:["Smells Like Teen Spirit","In Bloom","Come as You Are","Breed","Lithium","Polly","Territorial Pissings","Drain You","Lounge Act","Stay Away","On a Plain","Something in the Way"],s:[0,2,4,7]},
+{a:"Marvin Gaye",t:"What's Going On",y:1971,g:"Soul",d:"Gaye fought Motown for this concept album about Vietnam, poverty, ecology. Lush orchestration turning protest into poetry.",tr:["What's Going On","What's Happening Brother","Flyin' High","Save the Children","God Is Love","Mercy Mercy Me","Right On","Wholy Holy","Inner City Blues"],s:[0,5,8]},
+{a:"The Beatles",t:"Abbey Road",y:1969,g:"Rock",d:"Their final recorded album. The Side B medley is arguably the greatest 16 minutes in rock history.",tr:["Come Together","Something","Maxwell's Silver Hammer","Oh! Darling","Octopus's Garden","I Want You","Here Comes the Sun","Because","You Never Give Me Your Money","Golden Slumbers","Carry That Weight","The End"],s:[0,1,6,9]},
+{a:"Daft Punk",t:"Discovery",y:2001,g:"Electronic",d:"Disco, funk, house through vocoders. Each track a complete world — euphoric 'One More Time' to bittersweet 'Something About Us.'",tr:["One More Time","Aerodynamic","Digital Love","Harder Better Faster Stronger","Crescendolls","Nightvision","Superheroes","High Life","Something About Us","Voyager","Veridis Quo","Face to Face","Too Long"],s:[0,2,3,8]},
+{a:"Kanye West",t:"My Beautiful Dark Twisted Fantasy",y:2010,g:"Hip Hop",d:"Hip hop's maximalist opus. Every track a cathedral of sound — baroque, ambitious, untouchable.",tr:["Dark Fantasy","Gorgeous","POWER","All of the Lights","Monster","So Appalled","Devil in a New Dress","Runaway","Hell of a Life","Blame Game","Lost in the World"],s:[2,3,6,7]},
+{a:"David Bowie",t:"Ziggy Stardust",y:1972,g:"Glam Rock",d:"An alien rock messiah's rise and fall. Glam, sci-fi, existential dread wrapped in catchy guitar rock.",tr:["Five Years","Soul Love","Moonage Daydream","Starman","It Ain't Easy","Lady Stardust","Star","Hang On to Yourself","Ziggy Stardust","Suffragette City","Rock 'n' Roll Suicide"],s:[0,2,3,8]},
+{a:"Arcade Fire",t:"Funeral",y:2004,g:"Indie Rock",d:"Grief into anthemic catharsis. A Montreal orchestra-sized indie band proving maximalism and sincerity coexist.",tr:["Neighborhood #1 (Tunnels)","Neighborhood #2 (Laika)","Une Annee Sans Lumiere","Neighborhood #3 (Power Out)","Neighborhood #4 (7 Kettles)","Crown of Love","Wake Up","Haiti","Rebellion (Lies)","In the Backseat"],s:[0,3,6,8]},
+{a:"Prince",t:"Purple Rain",y:1984,g:"Pop / Rock",d:"Funk, rock, pop, new wave fused. The title track's six-minute guitar solo — one of music's greatest performances.",tr:["Let's Go Crazy","Take Me with U","The Beautiful Ones","Computer Blue","Darling Nikki","When Doves Cry","I Would Die 4 U","Baby I'm a Star","Purple Rain"],s:[0,3,5,8]},
+{a:"Bjork",t:"Homogenic",y:1997,g:"Art Pop",d:"Volcanic landscapes merged with strings and beats. Both ancient and futuristic — electronic music with a beating heart.",tr:["Hunter","Joga","Unravel","Bachelorette","All Neon Like","5 Years","Immature","Alarm Call","Pluto","All Is Full of Love"],s:[0,1,3,9]},
+{a:"OutKast",t:"Aquemini",y:1998,g:"Hip Hop",d:"Southern hip hop pushed into uncharted territory — psychedelic funk, spoken word, the most inventive flows ever recorded.",tr:["Return of the G","Rosa Parks","Skew It on the Bar-B","Aquemini","Synthesizer","Slump","West Savannah","Da Art of Storytellin Pt 1","Da Art of Storytellin Pt 2","SpottieOttieDopaliscious","Liberation","Chonkyfire"],s:[1,3,7,9]},
+{a:"Joy Division",t:"Unknown Pleasures",y:1979,g:"Post-Punk",d:"Saville's iconic pulsar cover. Hannett's cavernous production — Manchester becoming the sound of urban alienation.",tr:["Disorder","Day of the Lords","Candidate","Insight","New Dawn Fades","She's Lost Control","Shadowplay","Wilderness","Interzone","I Remember Nothing"],s:[0,4,5,6]},
+{a:"Stevie Wonder",t:"Songs in the Key of Life",y:1976,g:"Soul / Funk",d:"A double album needing a bonus EP. 21 tracks of radical joy and political consciousness topping charts for 13 weeks.",tr:["Love's in Need of Love Today","Village Ghetto Land","Sir Duke","I Wish","Knocks Me Off My Feet","Pastime Paradise","Isn't She Lovely","Joy Inside My Tears","Black Man","If It's Magic","As","Another Star"],s:[2,3,6,10]},
+{a:"Portishead",t:"Dummy",y:1994,g:"Trip Hop",d:"Spectral voice over noir samples — invented trip hop. The sound of 3 AM: smoky, paranoid, impossibly cool.",tr:["Mysterons","Sour Times","Strangers","It Could Be Sweet","Wandering Star","It's a Fire","Numb","Roads","Pedestal","Biscuit","Glory Box"],s:[1,4,7,10]},
+{a:"Frank Ocean",t:"Blonde",y:2016,g:"R&B",d:"R&B as impressionist poetry. Anti-commercial, full of space. The 'Nights' beat switch — one of modern music's great moments.",tr:["Nikes","Ivy","Pink + White","Solo","Skyline To","Self Control","Nights","Solo (Reprise)","Pretty Sweet","White Ferrari","Seigfried","Godspeed","Futura Free"],s:[1,2,5,6]},
+{a:"Nas",t:"Illmatic",y:1994,g:"Hip Hop",d:"A 20-year-old from Queensbridge — the most lyrically dense hip hop ever. Ten tracks, 39 minutes. Never surpassed.",tr:["The Genesis","N.Y. State of Mind","Life's a Bitch","The World Is Yours","Halftime","Memory Lane","One Love","One Time 4 Your Mind","Represent","It Ain't Hard to Tell"],s:[1,2,3,6]},
+{a:"The Cure",t:"Disintegration",y:1989,g:"Gothic Rock",d:"Making this was like drowning. Vast, layered, suffocatingly beautiful — 72 minutes of gorgeous gothic despair.",tr:["Plainsong","Pictures of You","Closedown","Lovesong","Last Dance","Lullaby","Fascination Street","Prayers for Rain","The Same Deep Water as You","Disintegration"],s:[0,1,3,5]},
+{a:"Joni Mitchell",t:"Blue",y:1971,g:"Folk",d:"Everything stripped bare. The singer-songwriter album all others are measured against. Vulnerability as bravery.",tr:["All I Want","My Old Man","Little Green","Carey","Blue","California","This Flight Tonight","River","A Case of You","The Last Time I Saw Richard"],s:[3,5,7,8]},
+{a:"Wu-Tang Clan",t:"Enter the Wu-Tang (36 Chambers)",y:1993,g:"Hip Hop",d:"Nine MCs, grimy kung-fu production. A blueprint every rap collective has tried to replicate.",tr:["Bring da Ruckus","Shame on a Nigga","Clan in da Front","Wu-Tang 7th Chamber","Can It Be All So Simple","Da Mystery of Chessboxin","Wu-Tang Clan Ain't Nuthing ta F Wit","C.R.E.A.M.","Method Man","Protect Ya Neck","Tearz"],s:[0,5,7,8]},
+{a:"Kate Bush",t:"Hounds of Love",y:1985,g:"Art Pop",d:"Side A: five perfect singles. Side B: drowning and transcendence. Self-produced, visionary, decades ahead.",tr:["Running Up That Hill","Hounds of Love","The Big Sky","Mother Stands for Comfort","Cloudbusting","And Dream of Sheep","Under Ice","Waking the Witch","Watching You Without Me","Jig of Life","Hello Earth","The Morning Fog"],s:[0,1,4,11]},
+{a:"Madvillain",t:"Madvillainy",y:2004,g:"Hip Hop",d:"DOOM's wordplay over Madlib's jazz-loop collage. Most tracks under two minutes, every second rewarding infinite replays.",tr:["The Illest Villains","Accordion","Meat Grinder","Bistro","Raid","America's Most Blunted","Sickfit","Curls","Money Folder","Shadows of Tomorrow","Figaro","Strange Ways","Fancy Clown","All Caps","Great Day"],s:[1,2,10,13]},
+{a:"Tame Impala",t:"Currents",y:2015,g:"Psychedelic Pop",d:"Psychedelic rock as shimmering synth-pop. Absurdly detailed — a gateway drug for discovering psych music.",tr:["Let It Happen","Nangs","The Moment","Yes I'm Changing","Eventually","Gossip","Past Life","Disciples","Cause I'm a Man","Reality in Motion","Love/Paranoia","New Person Same Old Mistakes"],s:[0,3,4,11]},
+{a:"John Coltrane",t:"A Love Supreme",y:1965,g:"Jazz",d:"Four-part spiritual devotional. One session. Recovery from addiction channeled into overwhelming transcendence.",tr:["Acknowledgement","Resolution","Pursuance","Psalm"],s:[0,2]},
+{a:"Michael Jackson",t:"Thriller",y:1982,g:"Pop",d:"Best-selling album ever. Every track a single. Quincy Jones decades ahead — performances that redefined pop stardom.",tr:["Wanna Be Startin Somethin","Baby Be Mine","The Girl Is Mine","Thriller","Beat It","Billie Jean","Human Nature","P.Y.T.","The Lady in My Life"],s:[0,3,4,5]},
+{a:"Beyonce",t:"Lemonade",y:2016,g:"Pop / R&B",d:"Visual album weaving infidelity, feminism, generational trauma. Each track an emotional stage — album as total artwork.",tr:["Pray You Catch Me","Hold Up","Don't Hurt Yourself","Sorry","6 Inch","Daddy Lessons","Love Drought","Sandcastles","Forward","Freedom","All Night","Formation"],s:[1,3,9,11]},
+{a:"SZA",t:"Ctrl",y:2017,g:"R&B",d:"Insecurity and desire as the millennial R&B bible. Confessional — like reading someone's diary with impeccable production.",tr:["Supermodel","Love Galore","Doves in the Wind","Drew Barrymore","Prom","The Weekend","Go Gina","Garden","Broken Clocks","Anything","20 Something"],s:[1,3,5,10]},
+{a:"Tyler, the Creator",t:"IGOR",y:2019,g:"Neo Soul / Synth Pop",d:"Synth-soul about unrequited love. Won Best Rap Album despite barely rapping. Uncompromising vision.",tr:["IGOR'S THEME","EARFQUAKE","I THINK","RUNNING OUT OF TIME","NEW MAGIC WAND","A BOY IS A GUN","PUPPET","WHAT'S GOOD","GONE GONE / THANK YOU","I DON'T LOVE YOU ANYMORE","ARE WE STILL FRIENDS?"],s:[1,4,5,10]},
+{a:"The Clash",t:"London Calling",y:1979,g:"Punk Rock",d:"Reggae, rockabilly, jazz, ska smuggled into punk. Punk containing multitudes.",tr:["London Calling","Brand New Cadillac","Jimmy Jazz","Rudie Can't Fail","Spanish Bombs","Lost in the Supermarket","Clampdown","The Guns of Brixton","Death or Glory","Train in Vain"],s:[0,4,5,7]},
+{a:"Fiona Apple",t:"Fetch the Bolt Cutters",y:2020,g:"Art Rock",d:"Recorded at home with dogs. Stomping, banging, chanting — 2020's most acclaimed album. Music as liberation.",tr:["I Want You to Love Me","Shameika","Fetch the Bolt Cutters","Under the Table","Relay","Rack of His","Newspaper","Ladies","Heavy Balloon","For Her","On I Go"],s:[0,1,2,6]},
+{a:"Solange",t:"A Seat at the Table",y:2016,g:"R&B",d:"Meditative, political. Quiet where protest albums shout — softness as radical resistance.",tr:["Rise","Weary","Mad","Don't You Wait","Cranes in the Sky","Don't Touch My Hair","F.U.B.U.","Where Do We Go","Borderline","Junie","Scales"],s:[0,4,5,6]},
+{a:"Radiohead",t:"Kid A",y:2000,g:"Experimental Rock",d:"Destroyed their blueprint — guitars for glitchy electronics. Now one of rock's most important artistic pivots.",tr:["Everything in Its Right Place","Kid A","The National Anthem","How to Disappear Completely","Treefingers","Optimistic","In Limbo","Idioteque","Morning Bell","Motion Picture Soundtrack"],s:[0,3,5,7]},
+{a:"Cocteau Twins",t:"Heaven or Las Vegas",y:1990,g:"Dream Pop",d:"Fraser sang in a language that didn't exist — glossolalic, operatic. Dream pop's definitive statement.",tr:["Cherry-Coloured Funk","Pitch the Baby","Iceblink Luck","Fifty-Fifty Clown","Heaven or Las Vegas","I Wear Your Ring","Fotzepolitic","Wolf in the Breast","Road River and Rail","Frou-Frou Foxes in Midsummer Fires"],s:[0,2,4,9]},
+{a:"The Smiths",t:"The Queen Is Dead",y:1986,g:"Indie Rock",d:"Morrissey's despair over Marr's jangly brilliance. Funny, literate — the template for indie melancholy.",tr:["The Queen Is Dead","Frankly Mr Shankly","I Know It's Over","Never Had No One Ever","Cemetry Gates","Bigmouth Strikes Again","The Boy with the Thorn in His Side","Vicar in a Tutu","There Is a Light That Never Goes Out","Some Girls Are Bigger Than Others"],s:[0,2,5,8]},
+{a:"Nick Drake",t:"Pink Moon",y:1972,g:"Folk",d:"28 minutes, two sessions, no overdubs. Dropped off the tapes, disappeared. Devastating intimacy.",tr:["Pink Moon","Place to Be","Road","Which Will","Horn","Things Behind the Sun","Know","Parasite","Free Ride","Harvest Breed","From the Morning"],s:[0,1,5,10]},
+{a:"Steely Dan",t:"Aja",y:1977,g:"Jazz Rock",d:"40+ musicians for impossible perfection. Every chord exotic, every groove immaculate. Audiophiles still test hi-fi with this.",tr:["Black Cow","Aja","Deacon Blues","Peg","Home at Last","I Got the News","Josie"],s:[1,2,3]},
+{a:"Television",t:"Marquee Moon",y:1977,g:"Post-Punk",d:"A new guitar vocabulary — angular, clean, endlessly building. The ten-minute title track. DNA of all post-punk.",tr:["See No Evil","Venus","Friction","Marquee Moon","Elevation","Guiding Light","Prove It","Torn Curtain"],s:[0,1,3,6]},
+{a:"A Tribe Called Quest",t:"The Low End Theory",y:1991,g:"Hip Hop",d:"Jazz married to hip hop. Q-Tip and Phife over Ron Carter's upright bass — intellectual without sacrificing groove.",tr:["Excursions","Buggin' Out","Rap Promoter","Butter","Verses from the Abstract","Show Business","Vibes and Stuff","Check the Rhime","Everything Is Fair","Jazz (We've Got)","Skypager","Scenario"],s:[0,1,7,11]},
+{a:"Fela Kuti",t:"Zombie",y:1977,g:"Afrobeat",d:"Two side-long tracks aimed at the Nigerian military, who burned his commune. The most dangerous album ever made.",tr:["Zombie","Mister Follow Follow"],s:[0,1]},
+];
+const OBSCURE=[
+{a:"Broadcast",t:"The Noise Made by People",y:2000,g:"Electronic / Dream Pop",d:"1960s radiophonic workshop through indie pop. Trish Keenan's ethereal voice — transmissions from alternate-history BBC.",tr:["Long Was the Year","Unchanging Window","Come On Let's Go","Papercuts","You Can Fall","Look Outside","Echoes Answer","Tower of Our Tuning","City in Progress","Dead the Long Year"],s:[0,2,4]},
+{a:"Comus",t:"First Utterance",y:1971,g:"Acid Folk",d:"The most unhinged folk album ever. Primal screaming, violin sawing, pagan imagery. Originals now fetch thousands.",tr:["Diana","The Herald","Drip Drip","Song to Comus","The Bite","Bitten","The Prisoner"],s:[0,3,4]},
+{a:"Arthur Russell",t:"World of Echo",y:1986,g:"Avant-Garde / Cello Pop",d:"Cellist, disco producer, composer. Effects-drenched cello and quivering voice between ambient and heartbreak pop.",tr:["Tone Bone Kone","Soon-to-Soon","Tower of Meaning","Let's Go Swimming","Hiding Your Present from You","All-Boy All-Girl","Home Away from Home","Lucky Cloud","Being It"],s:[0,3,4]},
+{a:"Stereolab",t:"Emperor Tomato Ketchup",y:1996,g:"Post Rock / Space Pop",d:"Marxist Moog bossa Krautrock. Deadpan French vocals — a 1960s educational film by avant-garde geniuses.",tr:["Metronomic Underground","Cybele's Reverie","Percolator","Les Yper-Sound","Spark Plug","OLV 26","The Noise of Carpet","Tomorrow Is Already Here","Emperor Tomato Ketchup","Monstre Sacre"],s:[0,1,3]},
+{a:"Silver Jews",t:"American Water",y:1998,g:"Indie Rock",d:"Berman's deadpan poetry over slacker rock. 'In 1984 I was hospitalized for approaching perfection.'",tr:["Random Rules","Smith & Jones Forever","Night Society","Federal Dust","People","Blue Arrangements","We Are Real","Honk If You're Lonely","The Wild Kindness","Buckingham Rabbit"],s:[0,1,8]},
+{a:"Fishmans",t:"Long Season",y:1996,g:"Dream Pop / Dub",d:"A single 35-minute track fusing dub, dream pop, electronics. Japan's most acclaimed album globally — transcendent.",tr:["Long Season"],s:[0]},
+{a:"The Raincoats",t:"The Raincoats",y:1979,g:"Post-Punk / DIY",d:"Cobain called finding this one of his greatest moments. Stunning originality — technically wrong, absolutely right.",tr:["No Side to Fall In","Adventures Close to Home","Off Duty Trip","The Void","Life on the Line","Fairytale in the Supermarket","In Love","Lola"],s:[0,5,6,7]},
+{a:"Mdou Moctar",t:"Afrique Victime",y:2021,g:"Tuareg Rock",d:"Tuareg guitarist from Niger learned from YouTube Van Halen. Blistering solos over desert blues — most vital guitar record in years.",tr:["Chismiten","Taliat","Ya Habibti","Tala Tannam","Layla","Afrique Victime","Asdikte Akal"],s:[0,2,5]},
+{a:"Grouper",t:"Ruins",y:2014,g:"Ambient / Folk",d:"Alone in crumbling Portuguese residency. Frogs and rain become the music. Devastating intimacy.",tr:["Made of Metal","Clearing","Call Across Rooms","Labyrinth","Lighthouse","Holding","Made of Air"],s:[0,2,3]},
+{a:"Vashti Bunyan",t:"Just Another Diamond Day",y:1970,g:"Psychedelic Folk",d:"Horse-drawn wagon across Scotland. Sold nothing, quit 30 years. The internet made it a folk-psych holy grail.",tr:["Diamond Day","Glow Worms","Lily Pond","Timothy Grub","Hebridean Sun","Swallow Song","Rose Hip November","Come Wind Come Rain","Rainbow River","Just Another Diamond Day"],s:[0,1,6,9]},
+{a:"Young Marble Giants",t:"Colossal Youth",y:1980,g:"Minimal Post-Punk",d:"Organ drones, whispers, the most restrained guitar in rock. A whisper cutting deeper than any scream.",tr:["Searching for Mr Right","Eating Noddemix","Colossal Youth","Wind in the Rigging","Constantly Changing","Choci Loni","Salad Days","Credit in the Straight World","Include Me Out","The Taxi","Brand-New-Life","Final Day"],s:[2,7,11]},
+{a:"Felt",t:"Forever Breathes the Lonely Word",y:1986,g:"Indie Pop / Chamber Pop",d:"Lawrence wanted the most beautiful record ever. Twelve-string Rickenbacker over organ and strings. Creation's finest album.",tr:["Rain of Crystal Spires","Gather Up Your Wings and Fly","Down but Not Yet Out","September Lady","Grey Streets","Textile Ranch","All the People I Like Are Those That Are Dead","A Wave Crashed on Rocks","Dark Red Birds","Hours of Darkness"],s:[0,3,6,7]},
+{a:"Moondog",t:"Moondog",y:1969,g:"Minimalist / Classical Outsider",d:"Blind, Viking-costumed street musician. Proto-minimalism before Philip Glass. Invented instruments with invented names.",tr:["Theme","Minisym","Stamping Ground","Birds","Lament I Bird's Lament","Death","Pigmy Pig","Organ Round","Wind River Lullaby"],s:[2,4,7]},
+{a:"Xiu Xiu",t:"Fabulous Muscles",y:2004,g:"Experimental / Noise Pop",d:"The 2000s' most emotionally brutal album. Drum machines, gamelan. A noise experiment that's also cathartic pop.",tr:["Crank Heart","I Luv the Valley OH!","Little Panda McElroy","Fabulous Muscles","Bunny Gamer","Clowne Towne","Support Our Troops OH!","Brian the Vampire","Mike","Nieces Pieces","Fast Car"],s:[0,1,3,10]},
+{a:"The Clientele",t:"Strange Geometry",y:2005,g:"Chamber Pop / Indie",d:"Autumn sunlight through dusty glass. Reverb-soaked guitars, literate melancholy — twee with Proustian depth.",tr:["Since K Got Over Me","Make You Mine","Losing Haringey","Step into the Light","K","Geometry","My Own Face Inside the Trees","Everything You See Tonight","Harvest Time","Strange Geometry"],s:[0,2,6,9]},
+{a:"Juana Molina",t:"Segundo",y:2000,g:"Folktronica",d:"Argentinian TV star quit for loop-based folk anticipating folktronica. Voice braiding through delay pedals.",tr:["El Desconfiado","Mantra del Bicho Feo","El Perro","Tres Almas","Rey de Copas","Guemes","No Llama","Quien?"],s:[0,2,3]},
+{a:"Prefab Sprout",t:"Steve McQueen",y:1985,g:"Sophisti-Pop",d:"Finest sophisti-pop album. Dolby production, jazz melodies, dazzling lyrics. Huge in UK, unknown in America.",tr:["Faron Young","Bonny","Appetite","When Love Breaks Down","Goodbye Lucille #1","Hallelujah","Moving the River","Horsin' Around","Desire As","When the Angels"],s:[0,3,5]},
+{a:"Pharoah Sanders",t:"Karma",y:1969,g:"Spiritual Jazz",d:"33 minutes of the most ecstatic recording ever. Overblown sax, bells, Leon Thomas' yodeling. Transcendence.",tr:["The Creator Has a Master Plan","Colors"],s:[0]},
+{a:"Ween",t:"The Mollusk",y:1997,g:"Experimental Rock",d:"Nautical concept album: pirate shanty, prog epic, Morricone tribute, pop gems. The ambition is serious.",tr:["I'm Dancing in the Show Tonight","The Mollusk","Polka Dot Tail","Mutilated Lips","The Blarney Stone","It's Gonna Be Alright","The Golden Eel","Buckingham Green","Ocean Man","She Wanted to Leave"],s:[1,3,7,8]},
+{a:"This Heat",t:"Deceit",y:1981,g:"Post-Punk / Avant-Garde",d:"Tape loops, industrial clatter, chilling harmonies about nuclear annihilation. Post-punk's most terrifying masterpiece.",tr:["Sleep","Paper Hats","Triumph","S.P.Q.R.","Cenotaph","Shrinkwrap","Radio Prague","Makeshift Swahili","Independence","A New Kind of Water"],s:[0,3,4,9]},
+{a:"Scientist",t:"Scientist Rids the World of the Evil Curse of the Vampires",y:1981,g:"Dub",d:"Riddims stripped to bones, drowned in echo. The greatest dub album with the greatest album title.",tr:["Vampire","Plague of Zombies","The Mummy's Shroud","Your Teeth in My Neck","The Voodoo Curse","The Ghoul","Dance of the Vampires","Dracula","Night of the Living Dead","The Corpse Rises"],s:[0,3,6,9]},
+{a:"Adrianne Lenker",t:"Songs",y:2020,g:"Folk / Intimate",d:"Big Thief's frontwoman in a cabin during lockdown. Birdsong bleeds through. Every whispered word a secret.",tr:["two reverse","ingydar","anything","forwards beckon rebound","heavy focus","half return","come","zombie girl","not a lot just forever","dragon eyes","my angel"],s:[1,2,4,10]},
+{a:"Linda Perhacs",t:"Parallelograms",y:1970,g:"Psychedelic Folk",d:"A dental hygienist from Topanga Canyon. One album with multi-tracked vocal phasing. Called a masterpiece 40 years later.",tr:["Chimacum Rain","Paper Mountain","Dolphin","Parallelograms","Sandy Toes","Hey Who Really Cares?","Moons and Cattails","Morning Colors","If You Were My Man"],s:[2,3,5]},
+{a:"Deerhunter",t:"Halcyon Digest",y:2010,g:"Ambient Pop / Noise",d:"Haunted by memory and the fear of forgetting. Drone, shoegaze, pure pop — trembling beauty between dream and waking.",tr:["Earthquake","Don't Cry","Revival","Sailing","Memory Boy","Desire Lines","Basement Scene","Helicopter","Fountain Stairs","Coronado","He Would Have Laughed"],s:[1,2,5,7]},
+{a:"Cleaners from Venus",t:"Midnight Cleaners",y:1982,g:"Lo-Fi Pop",d:"Martin Newell's 4-track bedroom jangle-pop. The ultimate hidden gem of 1980s British pop.",tr:["Corridor of Dreams","Only a Shadow","Wivenhoe Bells","Songs for a Fading Star","Night Starvation","Drowning Butterflies","Girl on a Swing","Mercury Girl","Midnight Cleaners","Living with Victoria Grey"],s:[0,2,5,7]},
+{a:"Brigitte Fontaine",t:"Comme a la Radio",y:1970,g:"Avant-Garde / Chanson",d:"French chanteuse with the Art Ensemble of Chicago. Free jazz, existentialism, cabaret. Nothing sounds like it.",tr:["Comme a la Radio","Tanka I","L'Ete l'Ete","Tanka II","Blanche-Neige","Il Pleut","Le Brouillard","C'est Normal"],s:[0,2,4]},
+{a:"Lena Platonos",t:"Sun Masks",y:1984,g:"Greek Electronic",d:"Classically trained Greek pianist's early electronic album. Minimal synths over proto-darkwave. A reissue revealed her as a pioneer.",tr:["Shadows' Dance","Sorcerer","Sun Masks","Bloody","Red Alert","Cats in the Dark","Witches","Free Fly"],s:[0,2,6]},
+];
+
+const h=React.createElement,{useState:uS,useEffect:uE,useRef:uR,useCallback:uC}=React;
+const SK="dailyspin_ratings";
+function loadR(){try{return JSON.parse(localStorage.getItem(SK))||{}}catch(e){return{}}}
+function saveR(d){try{localStorage.setItem(SK,JSON.stringify(d))}catch(e){}}
+// ratings format: { "Artist::Album": { ts: timestamp, liked: true/false, rating: 1-5 (if liked), genre:"...", year:1977, type:"classic"|"obscure" } }
+
+const GC={"Progressive Rock":"#e84855","Alternative Rock":"#c44536","Jazz":"#f6a21e","Hip Hop":"#8338ec","Rock":"#dc2626","R&B / Hip Hop":"#9333ea","Grunge":"#6b7280","Soul":"#f59e0b","Electronic":"#06b6d4","Pop / Rock":"#ec4899","Art Pop":"#a855f7","Post-Punk":"#94a3b8","Soul / Funk":"#d97706","Trip Hop":"#64748b","R&B":"#7c3aed","Art Rock":"#be185d","New Wave":"#0ea5e9","Neo Soul":"#d97706","Indie Rock":"#059669","Folk":"#22c55e","Punk Rock":"#ef4444","Dream Pop":"#c084fc","Synth Pop":"#38bdf8","Gothic Rock":"#6b21a8","Pop":"#f472b6","Funk":"#f97316","Afrobeat":"#eab308","Heavy Metal":"#6b7280","Ambient":"#67e8f9","Pop / R&B":"#e879f9","Garage Rock Revival":"#fb923c","Jazz / Soul":"#e8a838","Hard Rock":"#b91c1c","Psychedelic Pop":"#a78bfa","Neo Soul / Synth Pop":"#c4b5fd","Glam Rock":"#f472b6","Jazz Funk":"#d97706","Funk Rock":"#ea580c","Jazz Rock":"#b45309","Smooth Jazz / Soul":"#fbbf24","Experimental Rock":"#fb7185","Flamenco Pop":"#f43f5e","Krautrock":"#94a3b8","Plunderphonics":"#22d3ee","Post-Punk Revival":"#818cf8","Rap Metal":"#ef4444","Electronic / Dream Pop":"#818cf8","Acid Folk":"#84cc16","Avant-Garde / Cello Pop":"#a78bfa","Post Rock / Space Pop":"#22d3ee","Lo-Fi Pop":"#fbbf24","Psychedelic Folk":"#4ade80","Minimal Post-Punk":"#94a3b8","Avant-Garde / Chanson":"#f9a8d4","Indie Pop / Chamber Pop":"#86efac","Folktronica":"#a3e635","Sophisti-Pop":"#c4b5fd","Spiritual Jazz":"#fcd34d","Post-Punk / Avant-Garde":"#64748b","Post-Punk / DIY":"#fdba74","Tuareg Rock":"#fcd34d","Ambient / Folk":"#6ee7b7","Experimental / Noise Pop":"#fca5a5","Chamber Pop / Indie":"#a7f3d0","Dub":"#34d399","Industrial Hip Hop":"#78716c","Dream Pop / Dub":"#d8b4fe","Noise / Psych":"#f87171","Folk / Intimate":"#86efac","Experimental Electronic":"#f43f5e","Ambient Pop / Noise":"#93c5fd","Medieval Prog":"#d8b4fe","Greek Electronic":"#fda4af","Minimalist / Classical Outsider":"#e2e8f0"};
+function gc(g){return GC[g]||"#6366f1"}
+function seededShuffle(a,s){const r=[...a];let x=s;for(let i=r.length-1;i>0;i--){x=(x*16807)%2147483647;const j=x%(i+1);[r[i],r[j]]=[r[j],r[i]]}return r}
+function getDOY(d){return Math.floor((d-new Date(d.getFullYear(),0,0))/864e5)}
+function aKey(a){return a.a+"::"+a.t}
+function getDay(ago){const d=new Date();d.setDate(d.getDate()-ago);const y=d.getFullYear(),day=getDOY(d);const c=seededShuffle(CLASSICS,y),o=seededShuffle(OBSCURE,y+7919);return{classic:c[day%c.length],obscure:o[day%o.length],date:d,isToday:ago===0}}
+
+// Canvas cover
+const cvC={};
+function genCover(alb){
+  const k=alb.a+alb.t;if(cvC[k])return cvC[k];
+  const c=document.createElement("canvas");c.width=300;c.height=300;const x=c.getContext("2d");
+  const col=gc(alb.g);let sd=0;for(let i=0;i<alb.t.length;i++)sd=((sd<<5)-sd+alb.t.charCodeAt(i))|0;
+  function rn(){sd=(sd*16807)%2147483647;return(sd&0x7fffffff)/0x7fffffff}
+  const gr=x.createLinearGradient(rn()*100,0,300-rn()*100,300);
+  gr.addColorStop(0,col+"35");gr.addColorStop(0.5,"#0e0e0e");gr.addColorStop(1,col+"20");
+  x.fillStyle=gr;x.fillRect(0,0,300,300);
+  for(let i=0;i<5+Math.floor(rn()*4);i++){x.beginPath();x.arc(rn()*300,rn()*300,rn()*70+15,0,Math.PI*2);x.fillStyle=col+(Math.floor(rn()*25+8)).toString(16).padStart(2,"0");x.fill()}
+  const p=Math.floor(rn()*5);x.strokeStyle=col+"28";x.lineWidth=0.8;
+  if(p===0)for(let i=0;i<9;i++){x.beginPath();x.arc(150,150,15+i*16,0,Math.PI*2);x.stroke()}
+  else if(p===1)for(let i=0;i<14;i++){const an=i*Math.PI/7;x.beginPath();x.moveTo(150,150);x.lineTo(150+Math.cos(an)*145,150+Math.sin(an)*145);x.stroke()}
+  else if(p===2)for(let i=0;i<7;i++)x.strokeRect(20+i*18,20+i*18,260-i*36,260-i*36);
+  else if(p===3)for(let i=0;i<18;i++){x.beginPath();x.moveTo(0,i*17);x.bezierCurveTo(100,i*17+rn()*50-25,200,i*17+rn()*50-25,300,i*17);x.stroke()}
+  else for(let i=0;i<6;i++){const sz=rn()*60+20,px=rn()*260+20,py=rn()*260+20;x.save();x.translate(px,py);x.rotate(rn()*Math.PI);x.strokeRect(-sz/2,-sz/2,sz,sz);x.restore()}
+  const id=x.getImageData(0,0,300,300);for(let i=0;i<id.data.length;i+=4){const n=(Math.random()-.5)*12;id.data[i]+=n;id.data[i+1]+=n;id.data[i+2]+=n}x.putImageData(id,0,0);
+  x.fillStyle="#ffffff0a";x.font="bold 110px 'Playfair Display',Georgia,serif";x.textAlign="center";x.textBaseline="middle";x.fillText(alb.y.toString(),150,155);
+  cvC[k]=c.toDataURL("image/jpeg",0.85);return cvC[k];
+}
+
+const SP=h("svg",{width:18,height:18,viewBox:"0 0 24 24",fill:"#000"},h("path",{d:"M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"}));
+
+// ═══════ RATING MODAL ═══════
+function RatingModal({album,type,onClose,onSubmit}){
+  const[step,setStep]=uS("thumbs"); // thumbs -> rating -> done
+  const[liked,setLiked]=uS(null);
+  const[rating,setRating]=uS(0);
+  const[hover,setHover]=uS(0);
+  const col=gc(album.g);
+
+  function handleThumb(isLike){
+    setLiked(isLike);
+    if(isLike){setStep("rating")}
+    else{onSubmit({liked:false,rating:0,genre:album.g,year:album.y,type:type,artist:album.a,title:album.t});setStep("done")}
+  }
+  function handleRate(r){
+    setRating(r);
+    onSubmit({liked:true,rating:r,genre:album.g,year:album.y,type:type,artist:album.a,title:album.t});
+    setStep("done");
+  }
+
+  return h("div",{onClick:function(e){if(e.target===e.currentTarget)onClose()},style:{position:"fixed",inset:0,zIndex:9999,background:"#000000cc",display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",animation:"fadeIn .25s ease"}},
+    h("div",{style:{background:"#111",borderRadius:22,padding:"32px 28px",maxWidth:360,width:"100%",border:"1px solid #1a1a1a",position:"relative",animation:"fadeUp .4s cubic-bezier(.16,1,.3,1)"}},
+      // close
+      h("button",{onClick:onClose,style:{position:"absolute",top:14,right:16,background:"none",border:"none",color:"#444",fontSize:18,cursor:"pointer"}},"\u00d7"),
+      // album info
+      h("div",{style:{textAlign:"center",marginBottom:24}},
+        h("div",{style:{width:80,height:80,borderRadius:14,overflow:"hidden",margin:"0 auto 14px",boxShadow:"0 8px 30px "+col+"22"}},
+          h("img",{src:genCover(album),style:{width:"100%",height:"100%",objectFit:"cover"}})
+        ),
+        h("div",{style:{fontSize:18,fontStyle:"italic",fontFamily:"'Playfair Display',Georgia,serif",color:"#f5f0eb",marginBottom:4}},album.t),
+        h("div",{style:{fontSize:13,color:"#888",fontFamily:"'DM Mono',monospace"}},album.a)
+      ),
+
+      // Step: thumbs
+      step==="thumbs"&&h("div",{style:{textAlign:"center"}},
+        h("p",{style:{fontSize:13,color:"#666",marginBottom:20,fontFamily:"'DM Mono',monospace"}},"What did you think?"),
+        h("div",{style:{display:"flex",justifyContent:"center",gap:20}},
+          h("button",{onClick:function(){handleThumb(false)},style:{width:72,height:72,borderRadius:"50%",border:"2px solid #333",background:"transparent",fontSize:32,cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",justifyContent:"center"},onMouseEnter:function(e){e.currentTarget.style.borderColor="#ef4444";e.currentTarget.style.background="#ef444415"},onMouseLeave:function(e){e.currentTarget.style.borderColor="#333";e.currentTarget.style.background="transparent"}},"\ud83d\udc4e"),
+          h("button",{onClick:function(){handleThumb(true)},style:{width:72,height:72,borderRadius:"50%",border:"2px solid #333",background:"transparent",fontSize:32,cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",justifyContent:"center"},onMouseEnter:function(e){e.currentTarget.style.borderColor="#1DB954";e.currentTarget.style.background="#1DB95415"},onMouseLeave:function(e){e.currentTarget.style.borderColor="#333";e.currentTarget.style.background="transparent"}},"\ud83d\udc4d")
+        )
+      ),
+
+      // Step: rating
+      step==="rating"&&h("div",{style:{textAlign:"center"}},
+        h("p",{style:{fontSize:13,color:"#666",marginBottom:16,fontFamily:"'DM Mono',monospace"}},"Rate it out of 5"),
+        h("div",{style:{display:"flex",justifyContent:"center",gap:6,marginBottom:8}},
+          [1,2,3,4,5].map(function(n){
+            const active=n<=(hover||rating);
+            return h("button",{key:n,onClick:function(){handleRate(n)},onMouseEnter:function(){setHover(n)},onMouseLeave:function(){setHover(0)},style:{width:48,height:48,borderRadius:12,border:"none",background:active?"#f6a21e":"#1a1a1a",color:active?"#000":"#444",fontSize:20,cursor:"pointer",transition:"all .15s",transform:active?"scale(1.1)":"scale(1)",fontWeight:700}},"\u2605");
+          })
+        ),
+        (hover||rating)>0&&h("div",{style:{fontSize:11,fontFamily:"'DM Mono',monospace",color:"#f6a21e",letterSpacing:"0.1em",marginTop:4}},
+          ["","Meh","Decent","Good","Great","Masterpiece"][hover||rating]
+        )
+      ),
+
+      // Step: done
+      step==="done"&&h("div",{style:{textAlign:"center",animation:"fadeUp .3s ease"}},
+        h("div",{style:{fontSize:40,marginBottom:8}},liked?"\ud83c\udfa7":"\ud83d\udc4e"),
+        h("p",{style:{fontSize:14,color:"#999",fontFamily:"'DM Mono',monospace",marginBottom:4}},
+          liked?"Rated "+rating+"/5":"Noted — not your vibe"
+        ),
+        h("p",{style:{fontSize:11,color:"#444",fontFamily:"'DM Mono',monospace"}},"Saved to your collection"),
+        h("button",{onClick:onClose,style:{marginTop:16,background:"#1a1a1a",border:"none",color:"#999",fontFamily:"'DM Mono',monospace",fontSize:12,padding:"10px 24px",borderRadius:50,cursor:"pointer"}},"Done")
+      )
+    )
+  );
+}
+
+// Stars display
+function Stars({n,size}){
+  size=size||12;
+  return h("span",{style:{display:"inline-flex",gap:1}},
+    [1,2,3,4,5].map(function(i){
+      return h("span",{key:i,style:{color:i<=n?"#f6a21e":"#2a2a2a",fontSize:size}},"\u2605");
+    })
+  );
+}
+
+function Tracks({tracks,stars}){
+  return h("div",{style:{marginTop:12}},
+    h("div",{style:{fontSize:9,fontFamily:"'DM Mono',monospace",letterSpacing:"0.18em",textTransform:"uppercase",color:"#333",marginBottom:8}},"TRACKLIST"),
+    tracks.map(function(t,i){
+      const star=stars&&stars.indexOf(i)!==-1;
+      return h("div",{key:i,style:{display:"flex",alignItems:"center",gap:10,padding:"6px 10px",borderRadius:7,background:star?"#ffffff05":"transparent"}},
+        h("span",{style:{fontSize:11,fontFamily:"'DM Mono',monospace",color:star?"#555":"#2a2a2a",width:20,textAlign:"right",flexShrink:0}},String(i+1).padStart(2,"0")),
+        h("span",{style:{fontSize:13,color:star?"#e0dbd5":"#555",flex:1,fontWeight:star?600:400}},t),
+        star&&h("span",{style:{fontSize:8,fontFamily:"'DM Mono',monospace",letterSpacing:"0.08em",color:"#f6a21e",background:"#f6a21e10",padding:"2px 7px",borderRadius:8}},"STANDOUT")
+      );
+    })
+  );
+}
+
+function Card({album,type,expanded,onToggle,ratingData,onRate,delay}){
+  const col=gc(album.g),link="https://open.spotify.com/search/"+encodeURIComponent(album.a+" "+album.t);
+  const isC=type==="classic",cover=genCover(album);
+  const rated=!!ratingData;
+  return h("div",{className:"fade-up",style:{background:"#0b0b0b",borderRadius:22,overflow:"hidden",border:"1px solid #151515",position:"relative",animationDelay:delay+"s"}},
+    h("div",{style:{position:"absolute",top:0,left:0,right:0,height:260,background:"radial-gradient(ellipse at 25% -10%,"+col+"0e 0%,transparent 65%)",pointerEvents:"none"}}),
+    h("div",{style:{padding:"18px 22px 0",display:"flex",alignItems:"center",justifyContent:"space-between"}},
+      h("div",{style:{display:"flex",alignItems:"center",gap:8}},
+        h("div",{style:{width:7,height:7,borderRadius:"50%",background:isC?"#1DB954":"#ff6b6b"}}),
+        h("span",{style:{fontSize:10,fontFamily:"'DM Mono',monospace",letterSpacing:"0.2em",textTransform:"uppercase",color:isC?"#1DB954":"#ff6b6b"}},isC?"Essential Classic":"Cult Deep Cut")
+      ),
+      rated&&h("div",{style:{display:"flex",alignItems:"center",gap:6}},
+        ratingData.liked?h(Stars,{n:ratingData.rating,size:11}):h("span",{style:{fontSize:9,fontFamily:"'DM Mono',monospace",color:"#666"}},"Not for me"),
+        h("span",{style:{fontSize:9,fontFamily:"'DM Mono',monospace",color:"#1DB954",background:"#1DB95410",padding:"3px 8px",borderRadius:10,marginLeft:4}},"RATED")
+      )
+    ),
+    h("div",{style:{display:"flex",gap:18,padding:"16px 22px 0"}},
+      h("div",{style:{width:120,height:120,borderRadius:14,overflow:"hidden",flexShrink:0,boxShadow:"0 12px 44px "+col+"22"}},
+        h("img",{src:cover,alt:album.t,style:{width:"100%",height:"100%",objectFit:"cover",display:"block"}})
+      ),
+      h("div",{style:{flex:1,minWidth:0,paddingTop:2}},
+        h("h3",{style:{fontSize:22,fontWeight:400,fontStyle:"italic",lineHeight:1.15,margin:"0 0 6px",color:"#f5f0eb",fontFamily:"'Playfair Display',Georgia,serif"}},album.t),
+        h("p",{style:{fontSize:14,margin:"0 0 4px",color:"#999",fontFamily:"'DM Mono',monospace"}},album.a),
+        h("div",{style:{display:"flex",alignItems:"center",gap:8,marginTop:8,flexWrap:"wrap"}},
+          h("span",{style:{fontSize:10,padding:"3px 9px",borderRadius:12,background:col+"12",border:"1px solid "+col+"1e",color:col,fontFamily:"'DM Mono',monospace"}},album.g),
+          h("span",{style:{fontSize:11,color:"#333",fontFamily:"'DM Mono',monospace"}},album.y)
+        )
+      )
+    ),
+    h("div",{onClick:onToggle,style:{padding:"14px 22px 6px",cursor:"pointer"}},
+      h("div",{style:{overflow:"hidden",maxHeight:expanded?"2000px":"0px",transition:"max-height 0.6s cubic-bezier(0.16,1,0.3,1)"}},
+        h("p",{style:{fontSize:13.5,lineHeight:1.75,color:"#777",margin:"0 0 4px"}},album.d),
+        album.tr&&h(Tracks,{tracks:album.tr,stars:album.s})
+      ),
+      h("span",{style:{fontSize:10,color:"#333",fontFamily:"'DM Mono',monospace",letterSpacing:"0.1em"}},expanded?"SHOW LESS \u25B2":"TRACKS & INFO \u25BC")
+    ),
+    h("div",{style:{padding:"10px 22px 20px",display:"flex",gap:10,flexWrap:"wrap"}},
+      h("a",{href:link,target:"_blank",rel:"noopener noreferrer",className:"spotify-btn"},SP," Open in Spotify"),
+      h("button",{className:"listened-btn"+(rated?" done":""),onClick:function(e){e.stopPropagation();onRate()}},
+        rated?(ratingData.liked?"\u2605 "+ratingData.rating+"/5 Rated":"\ud83d\udc4e Rated"):"\u266b Rate This"
+      )
+    )
+  );
+}
+
+function MiniRow({day,i,ratings}){
+  const{classic:c,obscure:o,date:d,isToday:it}=day;
+  const ds=d.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
+  function Mini(a,lbl){
+    const link="https://open.spotify.com/search/"+encodeURIComponent(a.a+" "+a.t);
+    const rd=ratings[aKey(a)],cv=genCover(a);
+    return h("a",{href:link,target:"_blank",rel:"noopener noreferrer",style:{flex:1,display:"flex",gap:10,padding:10,background:"#090909",borderRadius:12,textDecoration:"none",border:"1px solid #121212",minWidth:0}},
+      h("div",{style:{width:46,height:46,borderRadius:8,overflow:"hidden",flexShrink:0}},h("img",{src:cv,style:{width:"100%",height:"100%",objectFit:"cover"}})),
+      h("div",{style:{minWidth:0,flex:1}},
+        h("div",{style:{fontSize:8,fontFamily:"'DM Mono',monospace",letterSpacing:"0.15em",color:lbl==="CLASSIC"?"#1DB95455":"#ff6b6b55",display:"flex",gap:4,alignItems:"center"}},lbl,rd&&h(Stars,{n:rd.liked?rd.rating:0,size:8})),
+        h("div",{style:{fontSize:12,color:it?"#e0dbd5":"#777",fontStyle:"italic",fontFamily:"'Playfair Display',Georgia,serif",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},a.t),
+        h("div",{style:{fontSize:10,color:"#333",fontFamily:"'DM Mono',monospace",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},a.a)
+      )
+    );
+  }
+  return h("div",{className:"fade-up",style:{background:it?"#0c0c0c":"transparent",borderRadius:14,padding:"14px 16px",borderLeft:it?"3px solid #1DB954":"3px solid transparent",animationDelay:(i*0.06)+"s"}},
+    h("div",{style:{fontSize:10,fontFamily:"'DM Mono',monospace",letterSpacing:"0.15em",textTransform:"uppercase",color:it?"#1DB954":"#2a2a2a",marginBottom:10}},it?"\u25CF TODAY":ds),
+    h("div",{style:{display:"flex",gap:10}},Mini(c,"CLASSIC"),Mini(o,"DEEP CUT"))
+  );
+}
+
+// ═══════ COLLECTION PAGE WITH FILTERS ═══════
+function CollectionPage({ratings,onRemove}){
+  const[filterGenre,setFG]=uS("all");
+  const[filterRating,setFR]=uS("all");
+  const[filterType,setFT]=uS("all");
+  const[sortBy,setSB]=uS("recent");
+
+  const keys=Object.keys(ratings);
+  // Collect unique genres
+  const genres=[];
+  keys.forEach(function(k){const g=ratings[k].genre;if(genres.indexOf(g)===-1)genres.push(g)});
+  genres.sort();
+
+  // Filter
+  let items=keys.map(function(k){return{key:k,...ratings[k]}});
+  if(filterGenre!=="all")items=items.filter(function(i){return i.genre===filterGenre});
+  if(filterRating!=="all"){
+    const fr=parseInt(filterRating);
+    if(fr===0)items=items.filter(function(i){return!i.liked});
+    else items=items.filter(function(i){return i.liked&&i.rating===fr});
+  }
+  if(filterType!=="all")items=items.filter(function(i){return i.type===filterType});
+
+  // Sort
+  if(sortBy==="recent")items.sort(function(a,b){return b.ts-a.ts});
+  else if(sortBy==="rating")items.sort(function(a,b){return(b.liked?b.rating:0)-(a.liked?a.rating:0)});
+  else if(sortBy==="artist")items.sort(function(a,b){return a.artist.localeCompare(b.artist)});
+  else if(sortBy==="year")items.sort(function(a,b){return a.year-b.year});
+
+  const totalRated=keys.length;
+  const totalLiked=keys.filter(function(k){return ratings[k].liked}).length;
+  const avg=totalLiked>0?(keys.filter(function(k){return ratings[k].liked}).reduce(function(s,k){return s+ratings[k].rating},0)/totalLiked).toFixed(1):"–";
+
+  function Sel(opts,val,onChange,label){
+    return h("div",{style:{flex:1,minWidth:0}},
+      h("div",{style:{fontSize:8,fontFamily:"'DM Mono',monospace",letterSpacing:"0.15em",color:"#333",marginBottom:4,textTransform:"uppercase"}},label),
+      h("select",{value:val,onChange:function(e){onChange(e.target.value)},style:{width:"100%",background:"#0a0a0a",border:"1px solid #1a1a1a",borderRadius:8,padding:"8px 10px",color:"#ccc",fontSize:12,fontFamily:"'DM Mono',monospace",appearance:"none",WebkitAppearance:"none",cursor:"pointer"}},
+        opts.map(function(o){return h("option",{key:o.v,value:o.v},o.l)})
+      )
+    );
+  }
+
+  return h("div",{className:"fade-up"},
+    // Stats bar
+    h("div",{style:{display:"flex",gap:16,justifyContent:"center",marginBottom:24,flexWrap:"wrap"}},
+      [{n:totalRated,l:"Rated"},{n:totalLiked,l:"Liked"},{n:avg,l:"Avg Rating"}].map(function(s){
+        return h("div",{key:s.l,style:{textAlign:"center",minWidth:70}},
+          h("div",{style:{fontSize:28,fontFamily:"'Playfair Display',Georgia,serif",fontWeight:700,color:"#f5f0eb",lineHeight:1}},s.n),
+          h("div",{style:{fontSize:9,fontFamily:"'DM Mono',monospace",letterSpacing:"0.12em",color:"#333",marginTop:3,textTransform:"uppercase"}},s.l)
+        );
+      })
+    ),
+
+    // Filters
+    h("div",{style:{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}},
+      Sel([{v:"all",l:"All Genres"}].concat(genres.map(function(g){return{v:g,l:g}})),filterGenre,setFG,"Genre"),
+      Sel([{v:"all",l:"All Ratings"},{v:"5",l:"\u2605\u2605\u2605\u2605\u2605"},{v:"4",l:"\u2605\u2605\u2605\u2605"},{v:"3",l:"\u2605\u2605\u2605"},{v:"2",l:"\u2605\u2605"},{v:"1",l:"\u2605"},{v:"0",l:"\ud83d\udc4e Disliked"}],filterRating,setFR,"Rating"),
+      Sel([{v:"all",l:"All Types"},{v:"classic",l:"Classics"},{v:"obscure",l:"Deep Cuts"}],filterType,setFT,"Type"),
+      Sel([{v:"recent",l:"Most Recent"},{v:"rating",l:"Highest Rated"},{v:"artist",l:"Artist A-Z"},{v:"year",l:"Year"}],sortBy,setSB,"Sort")
+    ),
+
+    // Results count
+    h("div",{style:{fontSize:10,fontFamily:"'DM Mono',monospace",color:"#333",marginBottom:14,letterSpacing:"0.05em"}},
+      items.length+" album"+(items.length!==1?"s":"")+(filterGenre!=="all"||filterRating!=="all"||filterType!=="all"?" (filtered)":"")
+    ),
+
+    // Empty
+    items.length===0&&h("div",{style:{textAlign:"center",padding:"50px 20px"}},
+      h("div",{style:{fontSize:32,marginBottom:12,opacity:0.15}},"\u266b"),
+      h("p",{style:{color:"#333",fontFamily:"'DM Mono',monospace",fontSize:12}},totalRated===0?"No albums rated yet":"No albums match these filters")
+    ),
+
+    // List
+    h("div",{style:{display:"flex",flexDirection:"column",gap:3}},
+      items.map(function(item,i){
+        const col=gc(item.genre);
+        const link="https://open.spotify.com/search/"+encodeURIComponent(item.artist+" "+item.title);
+        const dt=new Date(item.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"});
+        return h("div",{key:item.key,className:"fade-up",style:{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:11,background:"#090909",border:"1px solid #111",animationDelay:(i*0.02)+"s"}},
+          // Rating indicator
+          h("div",{style:{width:36,textAlign:"center",flexShrink:0}},
+            item.liked?h("div",null,
+              h("div",{style:{fontSize:16,fontWeight:700,color:"#f6a21e",fontFamily:"'DM Mono',monospace",lineHeight:1}},item.rating),
+              h("div",{style:{fontSize:7,color:"#f6a21e88",fontFamily:"'DM Mono',monospace"}},"/5")
+            ):h("span",{style:{fontSize:16}},"\ud83d\udc4e")
+          ),
+          // Info
+          h("a",{href:link,target:"_blank",rel:"noopener noreferrer",style:{flex:1,minWidth:0,textDecoration:"none"}},
+            h("div",{style:{fontSize:13,color:"#ccc",fontStyle:"italic",fontFamily:"'Playfair Display',Georgia,serif",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},item.title),
+            h("div",{style:{display:"flex",gap:6,alignItems:"center",marginTop:2}},
+              h("span",{style:{fontSize:11,color:"#555",fontFamily:"'DM Mono',monospace"}},item.artist),
+              h("span",{style:{fontSize:8,color:col,fontFamily:"'DM Mono',monospace",background:col+"12",padding:"1px 5px",borderRadius:6}},item.genre)
+            )
+          ),
+          h("span",{style:{fontSize:9,color:"#222",fontFamily:"'DM Mono',monospace",flexShrink:0}},dt),
+          h("button",{onClick:function(){onRemove(item.key)},style:{background:"none",border:"none",color:"#222",cursor:"pointer",fontSize:14,padding:"4px 6px"}},"\u00d7")
+        );
+      })
+    )
+  );
+}
+
+// ═══════ MAIN APP ═══════
+function App(){
+  const[view,setView]=uS("today"),[exC,setExC]=uS(false),[exO,setExO]=uS(false);
+  const[ratings,setRatings]=uS(loadR);
+  const[ratingModal,setRM]=uS(null); // {album, type}
+
+  const today=getDay(0),history=Array.from({length:7},function(_,i){return getDay(i)});
+  const accent=gc(today.classic.g);
+
+  function submitRating(album,type,data){
+    setRatings(function(p){
+      const n={...p};n[aKey(album)]={ts:Date.now(),...data};saveR(n);return n;
+    });
+  }
+  function removeRating(key){
+    setRatings(function(p){const n={...p};delete n[key];saveR(n);return n});
+  }
+
+  const rc=Object.keys(ratings).length;
+
+  return h("div",{style:{minHeight:"100vh",background:"#050505",color:"#e8e4df",position:"relative",overflow:"hidden"}},
+    h("div",{style:{position:"fixed",top:"-40%",right:"-25%",width:"80vw",height:"80vw",borderRadius:"50%",background:"radial-gradient(circle,"+accent+"0a 0%,transparent 60%)",pointerEvents:"none",transition:"background 2s"}}),
+    h("div",{style:{position:"fixed",bottom:"-30%",left:"-15%",width:"60vw",height:"60vw",borderRadius:"50%",background:"radial-gradient(circle,"+gc(today.obscure.g)+"08 0%,transparent 55%)",pointerEvents:"none"}}),
+    h("div",{style:{position:"fixed",inset:0,pointerEvents:"none",zIndex:100,opacity:0.02,backgroundImage:"url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E\")"}}),
+
+    // Rating modal
+    ratingModal&&h(RatingModal,{album:ratingModal.album,type:ratingModal.type,onClose:function(){setRM(null)},onSubmit:function(data){submitRating(ratingModal.album,ratingModal.type,data)}}),
+
+    h("div",{style:{maxWidth:580,margin:"0 auto",padding:"28px 18px 120px",position:"relative",zIndex:1}},
+      h("header",{className:"fade-up",style:{display:"flex",alignItems:"flex-end",justifyContent:"space-between",marginBottom:26,paddingBottom:18,borderBottom:"1px solid #111"}},
+        h("div",null,
+          h("h1",{style:{fontSize:30,fontWeight:400,margin:"0 0 2px",fontFamily:"'Playfair Display',Georgia,serif",fontStyle:"italic",color:"#f5f0eb"}},"Daily Spin"),
+          h("p",{style:{fontSize:11,fontFamily:"'DM Mono',monospace",color:"#333",margin:0}},new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"}))
+        ),
+        rc>0&&h("div",{onClick:function(){setView("collection")},style:{cursor:"pointer",fontSize:10,fontFamily:"'DM Mono',monospace",color:"#f6a21e",background:"#f6a21e10",padding:"5px 10px",borderRadius:9}},rc+" rated")
+      ),
+
+      h("nav",{className:"fade-up",style:{display:"flex",gap:2,marginBottom:26,background:"#090909",borderRadius:12,padding:3,animationDelay:"0.06s"}},
+        [{id:"today",lb:"Today"},{id:"history",lb:"This Week"},{id:"collection",lb:"Collection"}].map(function(t){
+          return h("button",{key:t.id,onClick:function(){setView(t.id)},style:{flex:1,background:view===t.id?"#151515":"transparent",border:"none",padding:"11px 14px",borderRadius:9,fontSize:11,fontFamily:"'DM Mono',monospace",letterSpacing:"0.06em",color:view===t.id?"#e8e4df":"#333",cursor:"pointer",transition:"all .25s",textTransform:"uppercase"}},t.lb);
+        })
+      ),
+
+      view==="today"&&h("div",{style:{display:"flex",flexDirection:"column",gap:20}},
+        h(Card,{album:today.classic,type:"classic",expanded:exC,onToggle:function(){setExC(!exC)},ratingData:ratings[aKey(today.classic)],onRate:function(){setRM({album:today.classic,type:"classic"})},delay:0.12}),
+        h(Card,{album:today.obscure,type:"obscure",expanded:exO,onToggle:function(){setExO(!exO)},ratingData:ratings[aKey(today.obscure)],onRate:function(){setRM({album:today.obscure,type:"obscure"})},delay:0.26}),
+        h("div",{className:"fade-up",style:{textAlign:"center",padding:14,animationDelay:"0.4s"}},h("p",{style:{fontSize:11,color:"#1a1a1a",fontFamily:"'DM Mono',monospace"}},"Two albums daily \u00b7 tap to expand tracks \u00b7 rate to build your collection"))
+      ),
+
+      view==="history"&&h("div",{style:{display:"flex",flexDirection:"column",gap:4}},history.map(function(d,i){return h(MiniRow,{key:i,day:d,i:i,ratings:ratings})})),
+
+      view==="collection"&&h(CollectionPage,{ratings:ratings,onRemove:removeRating})
+    )
+  );
+}
+ReactDOM.render(h(App),document.getElementById("root"));
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').then(function(reg) {
+      console.log('SW registered:', reg.scope);
+    }).catch(function(err) {
+      console.log('SW failed:', err);
+    });
+  });
+}
+</script>
+</body>
+</html>
